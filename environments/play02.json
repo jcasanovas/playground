@@ -1,0 +1,8 @@
+{
+  "projects": [
+    { "name": "app", "branch": "main" },
+    { "name": "api1", "branch": "main" },
+    { "name": "api2", "branch": "main" },
+    { "name": "api3", "branch": "main" }
+  ]
+}

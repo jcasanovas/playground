@@ -1,0 +1,52 @@
+name: Launch environment
+on:
+  workflow_dispatch:
+    inputs:
+      playground_environment:
+        description: 'Playground environment'
+        required: true
+        default: 'play01'
+        type: choice
+        options:
+        - play01
+        - play02
+        - play03
+
+jobs:
+  load_config:
+    name: Load config for ${{ inputs.playground_environment }}
+    runs-on: ubuntu-latest
+    outputs:
+      config: ${{ steps.set-matrix.outputs.config }}
+    steps:
+     - name: Checkout to repository
+       uses: actions/checkout@v4
+     - name: Set matrix data
+       id: set-matrix
+       run: |
+        echo "config=$(
+          jq -c . < ./environments/${{ inputs.playground_environment }}.json
+        )" >> $GITHUB_OUTPUT
+
+  deploy:
+    needs: [load_config]
+    name: 'Deployment ${{ matrix.name }}: ${{ matrix.branch }}'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include: ${{ fromJson(needs.load_config.outputs.config).projects }}
+    steps:
+    - uses: convictional/trigger-workflow-and-wait@v1.6.1
+      with:
+        repo: ${{ matrix.name }}
+        owner: jcasanovas
+        github_token: ${{ secrets.GH_PAT }}
+        workflow_file_name: playground-deployment.yml
+        wait_interval: 5
+        client_payload: '{
+          "playground_environment": "${{ inputs.playground_environment }}",
+          "playground_branch": "${{ matrix.branch }}"
+        }'
+        propagate_failure: true
+        trigger_workflow: true
+        wait_workflow: true
